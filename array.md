@@ -98,7 +98,7 @@ return results;
   * 알고리즘에서는 추가 구조가 없기 때문에 `O(1)`이지만, 결과 저장은 각 음수마다 2가지의 양수 조합이 가능하므로 `O(n^2)`까지 늘 수 있습니다.
 * 참고
   * 리스트에 추가 작업이 많고, 임의 접근이 없는 구조이므로 `LinkedList`를 선택했습니다. 
-### 2. 투포인터 
+### 2. 투포인터: 피봇을 기준으로 좌우로 좁혀가며 탐색
 ```java
 int left, right, sum;
 List<List<Integer>> results = new ArrayList<>();
