@@ -101,3 +101,43 @@ AURIX (TC3xx 기준)
    ├─ AUTOSAR Classic
    └─ RTOS
 ```
+# 물리/전자 학습 마인드맵
+```
+물리 / 전자 (임베디드 필수)
+├─ 전기 기초 (Physics Level)
+│  ├─ 전압 (Voltage)
+│  ├─ 전류 (Current)
+│  ├─ 저항 (Resistance)
+│  ├─ 전력 (Power)
+│  └─ 옴의 법칙
+│
+├─ 신호 개념 (Signal)
+│  ├─ 아날로그 신호
+│  ├─ 디지털 신호
+│  ├─ 노이즈
+│  └─ 임피던스
+│
+├─ 회로 기본 요소 (Electronics)
+│  ├─ Resistor
+│  ├─ Capacitor
+│  ├─ Inductor (개념만)
+│  └─ Pull-up / Pull-down
+│
+├─ MCU 관점 전자
+│  ├─ GPIO 전기적 특성
+│  ├─ 입력 / 출력 전압 레벨
+│  ├─ Sink / Source
+│  └─ 보호 회로
+│
+├─ 전원 & 안정성
+│  ├─ Power Supply
+│  ├─ Decoupling Capacitor
+│  ├─ Ground
+│  └─ Reset 안정성
+│
+└─ 실무 문제 연결
+   ├─ 왜 GPIO가 안 먹지?
+   ├─ 왜 랜덤 리셋 되지?
+   ├─ 왜 ADC 값이 튀지?
+   └─ 왜 CAN이 불안정하지?
+```
