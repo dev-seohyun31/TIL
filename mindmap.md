@@ -1,3 +1,7 @@
+# TODO 
+1. 아래 주제별 내용정리
+2. 내가 순수하게 이해한 바만 글로 쓰기 (what why when where how도 괜찮고, 개념도 괜찮음)
+
 # MCU 학습 마인드맵
 ```
 MCU
@@ -19,14 +23,14 @@ MCU
 │  ├─ PLL
 │  └─ Reset Source (POR, WDT, SW Reset)
 │
-├─ Peripheral
+├─ Peripheral (**)
 │  ├─ GPIO
 │  ├─ Timer / PWM
 │  ├─ ADC / DAC
 │  ├─ UART / SPI / I2C
 │  └─ CAN / LIN / Ethernet (고급 MCU)
 │
-├─ Interrupt System
+├─ Interrupt System (**)
 │  ├─ IRQ Vector Table
 │  ├─ Priority
 │  └─ Preemption
@@ -73,12 +77,12 @@ AURIX (TC3xx 기준)
 │  ├─ Crossbar
 │  └─ Peripheral Bus
 │
-├─ IO & Peripheral (Automotive)
+├─ IO & Peripheral (Automotive) (**)
 │  ├─ GPT12 / GTM (고급 타이머)
 │  ├─ EVADC (고속 ADC)
 │  ├─ CAN / CAN-FD
 │  ├─ FlexRay
-│  └─ Ethernet
+│  └─ Ethernet 
 │
 ├─ Startup & Boot
 │  ├─ BootROM
@@ -86,12 +90,12 @@ AURIX (TC3xx 기준)
 │  ├─ CPU1/2 동기화
 │  └─ User Startup Code
 │
-├─ Interrupt & Trap
+├─ Interrupt & Trap (**)
 │  ├─ Interrupt (IRQ)
 │  ├─ Trap (Exception)
 │  └─ Priority & Core Routing
 │
-├─ Tool & Framework
+├─ Tool & Framework (**) - MCAL 제외
 │  ├─ iLLD
 │  ├─ AURIX Development Studio
 │  └─ MCAL (AUTOSAR)
@@ -103,7 +107,7 @@ AURIX (TC3xx 기준)
 ```
 # 물리/전자 학습 마인드맵
 ```
-물리 / 전자 (임베디드 필수)
+물리 / 전자 (임베디드 필수) (**전부)
 ├─ 전기 기초 (Physics Level)
 │  ├─ 전압 (Voltage)
 │  ├─ 전류 (Current)
