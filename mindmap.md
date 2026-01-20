@@ -145,3 +145,114 @@ AURIX (TC3xx 기준)
    ├─ 왜 ADC 값이 튀지?
    └─ 왜 CAN이 불안정하지?
 ```
+
+## 회로이론 보완 마인드맵
+```
+[Embedded Engineer Core]
+
+├── 1. MCU Architecture (중심 축)
+│   ├── CPU Core
+│   │   ├─ Instruction
+│   │   ├─ Pipeline
+│   │   ├─ Register
+│   │
+│   ├── Memory System
+│   │   ├─ Flash
+│   │   ├─ RAM
+│   │   ├─ Memory Map
+│   │
+│   ├── Bus System
+│   │   ├─ AXI / AHB
+│   │   ├─ Peripheral Bus
+│
+│   └── Clock & Reset
+│       ├─ Internal Oscillator
+│       ├─ External Crystal
+│       ├─ PLL
+│       ├─ Reset Source
+│
+├── 2. Peripheral Layer (지금 메인 학습 영역)
+│   ├── GPIO
+│   │   ├─ Input / Output Mode
+│   │   ├─ Pull-up / Pull-down
+│   │   ├─ Drive Strength
+│   │
+│   ├── Timer
+│   │   ├─ Counter
+│   │   ├─ Prescaler
+│   │   ├─ PWM
+│   │
+│   ├── ADC
+│   │   ├─ Sampling
+│   │   ├─ Resolution
+│   │   ├─ Reference Voltage
+│   │
+│   ├── Communication
+│   │   ├─ UART
+│   │   ├─ SPI
+│   │   ├─ I2C
+│   │
+│   └── Interrupt / DMA
+│
+├── 3. Pin & Electrical Interface (MCU ↔ 현실세계 연결부)
+│   ├── Pin Multiplexer
+│   ├── Input Buffer
+│   ├── Output Driver
+│   ├── ESD Protection
+│   ├── Clamp Diode
+│
+│   ├── Pull-up / Pull-down (여기서 막힘 발생)
+│   │   ├─ Floating 상태
+│   │   ├─ High-Z
+│   │   ├─ Leakage Current
+│
+│   └── Voltage Level
+│       ├─ 3.3V / 5V Logic
+│       ├─ Threshold Voltage
+│
+├── 4. Electronics Basic (전자기초 — 병목구간)
+│   ├── Voltage / Current
+│   ├── Resistance
+│   ├── Ohm's Law
+│
+│   ├── Capacitor
+│   │   ├─ Charging / Discharging
+│   │   ├─ Decoupling
+│   │   ├─ Noise Filter
+│
+│   ├── Inductor (선택)
+│   │   ├─ Power Filtering
+│
+│   └── Impedance
+│       ├─ AC Resistance
+│       ├─ Frequency Dependency
+│
+├── 5. Circuit Theory (해석 능력)
+│   ├── KCL (Current Law)
+│   ├── KVL (Voltage Law)
+│   ├── Node Analysis
+│   ├── RC Time Constant
+│   ├── Transient Response
+│
+├── 6. Semiconductor Devices (내부 구조 이해)
+│   ├── Diode
+│   ├── NMOS / PMOS
+│   │   ├─ Switching
+│   │   ├─ Gate Control
+│   │   ├─ Push-pull Output
+│
+│   └── CMOS Logic
+│
+├── 7. Noise & Signal Integrity (실무 트러블 구간)
+│   ├── Ground Bounce
+│   ├── EMI
+│   ├── Crosstalk
+│   ├── Decoupling Capacitor
+│
+└── 8. AURIX Specific Layer
+    ├── Port Driver
+    ├── Pad Driver
+    ├── Drive Strength
+    ├── Pin Configuration
+    ├── Safety IO
+```
