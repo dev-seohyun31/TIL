@@ -1,6 +1,6 @@
 # 실제 개념
 ## GPIO란
-GPIO(General Purpose Input Output)는
+GPIO(General Purpose Input Output)는 디지털 I/O를 담당한는 Peripheral로,
 MCU 내부 디지털 로직과 외부 물리 세계(전압)를 연결하는 범용 입출력 인터페이스입니다.
 
 CPU는 메모리 주소 공간을 통해 연산을 할 뿐, 물리적인 전압을 직접 처리하지 않습니다. 
