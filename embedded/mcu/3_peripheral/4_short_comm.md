@@ -6,10 +6,6 @@ MCU
  ├─ SPI → Flash
  └─ I2C → Sensor
 ```
-기본적으로 다음 순서로 동작합니다.
-```
-핀 → 전기 신호 → 프레임 → Shift Register → Peripheral 동작
-```
 ## 1. UART란
 UART(Universsal Asynchronous Reciever/Transmitter)란, 클록 공유 없이 직렬 통신 방식으로 바이트 데이터를 TX/RX 핀을 통해 송수신하는 비동기 통신 주변장치입니다. 
 ### 특징
