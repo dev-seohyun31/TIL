@@ -91,21 +91,22 @@ void TIMER_ISR(void)
 
 ### 3. PWM 생성
 #### PWM 개념
-PWM(Pulse Width Modulation)은 
-> 디지털 신호의 ON/OFF 비율을 조정하여(= duty cycle), 평균 전압/전류 효과를 만들어내는 방식입니다.
+PWM(Pulse Width Modulation)은 디지털 출력 신호의 HIGH 유지 시간 비율을 조정하여(= duty cycle), 평균 전력 전달량을 제어하는 방식입니다.
  
-MCU의 핀 출력은 기본적으로 LOW (0V) / HIGH (3.3V 또는 5V) 두 상태만 가능합니다. 
-PWM은 이 두상태를 고속으로 반복하여서 아날로그 신호처럼 동작하게 만들 수 있습니다.
+MCU의 핀 출력은 기본적으로 LOW (0V) / HIGH (3.3V 또는 5V) 두 상태만 출력할 수 있습니다. 
+PWM은 이 두 상태를 고속으로 반복하여서 평균 전압 및 전류 효과를 만들어내어서 LED 밝기, 모터 속도와 같은 연속적인 제어를 할 수 있습니다.
 ```
-HIGH ┌────┐        ┌────┐
-     │    │        │    │
-LOW  └────┴────────┴────┴─────
+HIGH ┌───────┐       ┌───────┐
+     │       │       │       │
+LOW  └───────┴───────┴───────┴───
+        ←──── Period ────→
 ```
 #### PWM 효과
 * Duty 20%의 경우, `HIGH 짧게 가져감 -> 평균 전압이 낮아짐 -> LED가 어두워짐`
 * Duty 80%의 경우, `HIGH 길게 가져감 -> 평균 전압이 높음 -> LED가 밝아짐`
 
 #### Timer 기반 PWM 생성 구조
+PWM은 독립된 주변장치가 아니라 Timer 주변장치 내부의 Output Compare 채널 기능으로 구현됩니다. 구조는 다음과 같습니다.
 ```
 Clock Source
 -> Prescalar
@@ -114,30 +115,48 @@ Clock Source
 -> Output Control Logic (Toggle / Set / Clear)
 -> PWM Output pin
 ```
+Timer의 Base Counter(CNT)는 모든 채널이 공유하고,
+CMP는 채널별로 독립적으로 존재하여 각각의 PWM Duty를 생성합니다.
+
 ##### 1. TIMER Counter (CNT)
 Timer는 클록 입력을 받아서 내부 카운터를 자동으로 증가시킵니다.
 ```
-CNT = 0 -> 1 -> 2 -> 3 -> ... -> PERIOD (TOP)
+CNT = 0 -> 1 -> 2 -> 3 -> ... -> TOP -> 0 -> (반복)
 ```
-이 카운터 값은 PWM 시간 축의 역할을 담당합니다.
-##### 2. Period Register (TOP)
+이 CNT 값이 PWM의 공통 시간 기준(Time Base) 역할을 수행합니다.
+CPU 개입 없이 클록 기반으로 동작합니다.
+
+##### 2. Period Register (ARR / TOP)
 PWM 한 주기의 길이를 결정하는 기준 값입니다. 
-`TOP = 1000`이라면 CNT가 0부터 1000까지 증가하고 다시 0으로 리셋되며, 이는 한 사이클을 의미합니다.
+`TOP = 1000`이라면 CNT가 0부터 1000까지 증가하고 다시 0으로 리셋되며, 이는 PWM의 한 주기의 길이를 의미합니다.
+
+PWM 주파수는 다음과 같이 정의됩니다.
+```
+PWM Frequency = Timer Clock / (Prescaler × TOP)
+```
 ##### 3. Compare Register (CMP)
-PWM duty cycle을 결정하는 기준 값입니다.: `CMP < TOP`
-##### 4. Output Control Logic
-하드웨어 비교 결과에 따라 출력 핀 상태를 자동으로 제어합니다.
+PWM의 Duty Cycle을 결정하는 채널별 기준값 레지스터입니다.
+CMP 값은 CNT와 비교하여 출력 타이밍을 결정합니다. 
+```
+TOP = 1000, CMP = 3000
+-> Duty = 30%
+```
+##### 4. Output Compare Logic
+Timer 하드웨어는 매 tick마다 CNT와 CMP를 자동 비교하고,
+그 결과에 따라 출력 핀 상태를 하드웨어적으로 제어합니다.
 일반적인 PWM 동작 규칙은 다음과 같습니다.
 ```
 CNT < CMP  → Output HIGH
 CNT ≥ CMP  → Output LOW
 ```
+이 과정은 CPU 개입 없이 Timer 하드웨어에서 자동 수행됩니다.
+
 #### PWM 특징
 1. CPU의 개입이 없이 Timer 하드웨어(CNT, CMP 등)이 자동으로 수행합니다.
 1. 타이밍이 매우 정확합니다.
     * Timer 클록 기반으로 동작하기 때문에 인터럽트 지연에 영향도 없고, 일정한 파형을 유지합니다. 
 1. 실시간으로 Duty를 변경할 수 있습니다.
-    * CMP 값만 변경하면 PWM 출력도 자동으로 갱신되고, LED 밝기나 모터 속도도 실시간으로 부드럽게 제어가 가능합니다.  
+    * CPU가 CMP 값만 변경하면 PWM 출력도 자동으로 갱신되고, LED 밝기나 모터 속도도 실시간으로 부드럽게 제어가 가능합니다.  
 
 
 # 내가 이해한 바
