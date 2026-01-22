@@ -25,9 +25,9 @@ UART의 기본 배선 연결은 다음과 같습니다.
  │                  │  GND ─────────  │  GND                 │
  └──────────────────┘                 └──────────────────────┘
 ```
-* TX (Transmit): 송신선
-* RX (Receive): 수신선
-* GND (Reference Ground): 기준 전압
+* TX (Transmit): 송신선을 GPIO 핀에 직접 연결
+* RX (Receive): 수신선을 GPIO 핀에 직접 연결
+* GND (Reference Ground): 기준 전압을 직접 연결 
 
 TX와 RX는 교차 연결되며, GND는 양쪽 장치의 전압 기준을 맞추기 위해 반드시 공유되어야 합니다.
 
@@ -66,7 +66,7 @@ UART Peripheral
 
 ### 활용 분야
 UART는 구조가 단순하고 구현이 쉬워 디버깅 및 범용 통신 인터페이스로 가장 많이 사용됩니다.
-* 디버깅 로그 출력: `printf("ok");`를 남기면, 터미널로 출력될 수 있습니다.
+* 디버깅 로그 출력: `printf("ok");`를 남기면, 문자 하나씩 프레임을 생성하여 터미널로 출력합니다..
 * 펌웨어 다운로드 및 부트로더 통신
 * 모듈 제어 통신: `MCU ↔ WiFi 모듈`, `MCU ↔ GPS 모듈`
 
@@ -92,17 +92,35 @@ SPI 기본 연결 구조는 다음과 같습니다.
  │            │ GND  ────────  │ GND        │
  └────────────┘                └────────────┘
 ```
-* MOSI (Master Out Slave In): Master → Slave 데이터
-* MISO (Master In Slave Out): Slave → Master 데이터
-* SCLK (Serial Clock): Master가 생성하는 클록
-* CS (Chip Select): 통신할 Slave 선택
+* MOSI (Master Out Slave In): Master → Slave 데이터 전용선 (Slave 여러 개인 경우, 공유)
+* MISO (Master In Slave Out): Slave → Master 데이터 전용선 (Slave 여러 개인 경우, 공유)
+* SCLK (Serial Clock): Master가 생성하는 클록 (Slave 여러 개인 경우, 공유)
+* CS (Chip Select): 통신할 Slave 선택하여 연결
 * GND: 기준 전압
-
-Slave가 여러 개인 경우 MOSI/MISO/SCLK는 공유하고, CS는 Slave마다 개별 사용합니다.
 
 ### 프레임 구조
 SPI는 UART처럼 고정된 프레임 구조가 없습니다. 
-단, `클록 N번 = N비트 전송` 규칙을 갖고 있고, 프레임 구조는 Slave 디바이스 datasheet에 정의됩니다. 
+단, `클록 N번 = N비트 전송` 규칙을 갖고 있고, 프레임 구조는 Slave 디바이스 datasheet에 정의됩니다. 예를 들어, Slave datasheet는 다음과 같이 정의될 수 있습니다.
+```
+READ:
+CS LOW
+0x0B (Command)
+24bit Address
+Dummy Byte
+Data Byte
+CS HIGH
+```
+Master에서는 코드를 다음과 같이 짤 수 있습니다.
+```C
+CS_LOW();
+
+spi_send(0x90);   // READ + address
+spi_send(0x00);   // dummy clock
+data = spi_send(0x00);
+
+CS_HIGH();
+```
+따라서 Master는 Slave의 datasheet를 보고 프레임을 작성하고, 클록 속도가 빠른만큼 데이터도 빠르게 전송될 가능성이 큽니다.
 
 ### 동작 원리
 SPI는 Shift Register 기반의 동기식 전송 구조입니다.
@@ -154,29 +172,8 @@ I2C(Inter-Integrated Circuit)는 두 개의 선(SDA, SCL)만으로 여러 장치
 * **직렬 통신 방식**
 ### 물리적 배선 구조
 I2C는 버스 구조를 사용합니다.
-```
-                     VCC
-                      │
-             ┌────────┴───────┐
-             │                │
-           [Rpullup]       [Rpullup]
-             │                │
-SDA BUS  ────┼───────┬────────┼───────────
-             │       │        │
-           ┌─┴─┐   ┌─┴─┐    ┌─┴─┐
-           │MCU│   │Dev│    │Dev│
-           │SDA│   │SDA│    │SDA│
-           └───┘   └───┘    └───┘
+<img width="300" height="180" alt="image" src="https://github.com/user-attachments/assets/79ca221e-b612-4005-b806-2dc4ab4f1504" />
 
-SCL BUS  ────┼───────┬────────┼───────────
-             │       │        │
-           ┌─┴─┐   ┌─┴─┐    ┌─┴─┐
-           │MCU│   │Dev│    │Dev│
-           │SCL│   │SCL│    │SCL│
-           └───┘   └───┘    └───┘
-
-GND  --------------------------------------------------------- (공통)
-```
 * SDA (Serial Data): 데이터 라인
 * SCL (Serial Clock): 클록 라인
 * Pull-up 저항 필수
@@ -185,13 +182,25 @@ GND  --------------------------------------------------------- (공통)
 I2C는 프로토콜 기반 프레임 구조를 가집니다.
 ```
 START
-ADDRESS + R/W
+[Slave Address + R/W bit]
 ACK
-DATA (8bit)
+[Data Byte 1]
+ACK
+[Data Byte 2]
 ACK
 ...
 STOP
 ```
+* START 조건: 버스 시작 신호를 보냅니다.
+    * SDA: HIGH -> LOW로 변화
+    * SCL: HIGH 상태
+* Slave Address + R/W bit (8bit) 
+    * Master가 `7bit 주소 + 1bit R/W`로, `0b1010000 + 0 (Write)` 송신
+* ACK bit: Slave가 SDA를 LOW로 당기면서 응답합니다.
+* Data Byte: 8비트 단위로 전송합니다.
+* STOP 조건: 통신 종료 신호를 보냅니다.
+    * SDA: LOW -> HIGH로 변화
+    * SDA: HIGH 상태 
 ### 동작 원리
 
 #### 내부 구조
@@ -225,7 +234,8 @@ I2C Peripheral
 7. STOP 조건 생성
 
 ### 활용 분야
-I2C는 다수의 저속 주변 장치 연결에 최적화되어 있다.
+I2C는 다수의 저속 주변 장치 연결에 최적화되어 있습니다.
+특히, PCB에 붙어있는 외부 장치(예: 온도 센서, Flash memory 칩, 이더넷 컨트롤러 등)에서 잘 쓰입니다.
 * 온도 / 습도 센서
 * RTC
 * EEPROM
