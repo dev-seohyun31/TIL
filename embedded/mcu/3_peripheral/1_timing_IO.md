@@ -2,43 +2,66 @@
 # 실제 개념
 
 ## Timer란
-timer는 MCU 내부에서 시간 개념을 만들어주는 하드웨어 주변장치입니다. 
+Timer는 MCU 내부에서 시간 개념을 만들어주는 하드웨어 주변장치입니다. 
 CPU는 클록 엣지, 명령 실행, 레지스터 값 변화만 인식할 뿐, "5ms 지났다", "1초 대기" 등 시간 개념을 직접 인식하지 못합니다. 
-따라서 Timer는 클록 신호를 기반으로 카운트를 누적하여, 시간 흐름을 숫자로 변환하는 역할을 담당합니다. 
+따라서 Timer는 클록 신호를 기반으로 카운트를 자동 증가시켜 시간 흐름을 숫자로 표현하는 역할을 수행합니다. 
 
 > 타이머의 역할: 클록 -> 카운트 -> 시간 -> 이벤트 생성
 
-### 물리적 구조
-Timer의 기본 내부 구조는 다음과 같습니다. 
+
+Timer는 CPU가 직접 시간을 계산하는 방식이 아니라, 클록에 의해 구동되는 독립적인 하드웨어 블록으로 동작하며,
+CPU는 Timer를 설정하고 시작시키는 역할만 수행합니다.
+
+### Clock과의 관계
+Timer는 내부 오실레이터에 직접 연결되지 않고, Clock Controller (특수 주변장치)를 통해 분배된 Peripheral Clock을 입력으로 받습니다.
 ```
-Clock Source
+Oscillator
+-> PLL
+-> Clock Controller
+-> Peripheral Clock Line
+-> Timer Core
+```
+
+Timer는 클록 경로와 버스 경로를 동시에 가지고 있어서, 
+CPU로 시스템 버스를 통해 Timer 레지스터를 설정할 수 있고, 
+Clock Line으로 실제 시간 동작을 수행할 수 있습니다.
+
+
+### 물리적 구조
+Timer는 `cpu enable` 시작과 함께 계속 실행되고 있으며, 기본 내부 구조는 다음과 같습니다. 
+```
+Peripheral Clock Input
 -> Pasacalar
 -> Counter Resgister (CNT)
 -> Compare Register (CMP)
--> Interrupt / Output Event / PWM Trigger
+-> Event Logic
+-> Interrupt / Output Toggle / PWM Trigger / DAM Trigger
 ```
+* Presacalr: 입력 클록을 분주하여 CNT 증가 속도 조절합니다.
+* Counter: 클록 기반 자동 증가 회로
+* Compare: 이벤트 발생 기준 값. (CPU가 설정) 
+* Event Logic: 하드웨어 이벤트 생성. (CPU가 설정)
 
 ### 동작 흐름
 #### 1. Clock 입력
-Timer는 선택된 클록 소스로부터 주기적인 펄스를 입력받는다. 
-* 예: System Clock이 클록 소스의 경우, 100 MHz의 펄스를 받는다.
-* 그 외의 클록 소스로는 Peripheral Clock, Internal Oscillator, External Clock Pin 등이 될 수 있습니다.
-
-#### 2. Pascalar의 분주
+Timer는 Clock controller를 통해 Peripheral clock을 입력받습니다.
+* 예: Peripheral Clock = 100 MHz
+#### 2. Pascalar 분주
 입력 클록은 너무 빠르기 때문에 Prescalar로 divide하여 사용합니다. 
 * 예: 100 MHz / 100 = 1 MHz 이라면, Timer tick = 1 μs 가 됩니다.
 
-#### 3. Counter 증가
-Timer 하드웨어는 자동으로 Counter 레지스터를 증가시킵니다.
+#### 3. Counter 자동 증가
+Timer 하드웨어는 클록 기반으로 Counter를 자동 증가시킵니다.
+이 과정은 CPU 개입없이 하드웨어에서 독립적으로 수행합니다.
 * 예: `CNT = 0 -> 1 -> 2 -> 3 -> ...`
 
-#### 4. Compare 비교
-CPU가 설정한 CMP와 CNT를 하드웨어가 자동으로 비교합니다. 
-`CNT == CMP` 조건 만족 시, 인터럽트 발생/핀 토글/PWM 상태변경/DMA 트리거 등 하드웨어 이벤트가 발생합니다. 
+#### 4. Compare 이벤트 발생
+CPU가 설정한 CMP와 CNT가 일치하면 하드웨어 이벤트가 발생됩니다.
+즉, `CNT == CMP` 조건 만족 시, 인터럽트 발생/핀 토글/PWM 상태변경/DMA 트리거 등 하드웨어 이벤트가 발생합니다. 
 
 ## Timer 활용
 ### 1. 정확한 Delay 생성
-#### 문제
+#### 문제점 (CPU 루프 방식)
 단순 루프방식인 `for(i=0;i<100000;i++);`은 CPU 클록이 변경되거나, 컴파일러 최적화가 발생했을 때 시간이 변동될 수 있어, 정확한 시간 보장이 불가능합니다.
 #### Timer 기반 방식으로 해결
 다음과 같은 하드웨어 조건이라면,
@@ -55,8 +78,9 @@ while ((TIMER->CNT) - start < 10000);
 
 
 ### 2. 주기적 작업 실행
-Timer는 인터럽트와 결합하면 정확학 주기 실행 엔진으로 사용될 수 있습니다.
-예를 들어, `1 MHz Timer, CMP = 5000`인 조건에서 5ms마다 인터럽트를 발생시키고 싶다면 다음과 같이 인터럽트 코드를 생성할 수 있습니다.
+Timer는 인터럽트와 결합하여 정확학 주기 실행 엔진으로 사용될 수 있습니다.
+예를 들어, `1 MHz Timer, CMP = 5000`인 조건은 5ms마다 인터럽트를 발생시킬 수 있습니다.
+또한, 다음과 같이 인터럽트 코드를 생성할 수 있습니다.
 ```C
 void TIMER_ISR(void)
 {
