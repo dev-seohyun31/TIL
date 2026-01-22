@@ -1,39 +1,93 @@
 # 실제 개념
 ## GPIO란
-GPIO(General Purpose Input Output)는 디지털 I/O를 담당한는 Peripheral로,
-MCU 내부 디지털 로직과 외부 물리 세계(전압)를 연결하는 범용 입출력 인터페이스입니다.
+GPIO(General Purpose Input Output)는 MCU 내부 디지털 로직과 외부 물리세계인 전압 신호를 연결하는 범용 디지털 입출력 주변장치입니다.
 
-CPU는 메모리 주소 공간을 통해 연산을 할 뿐, 물리적인 전압을 직접 처리하지 않습니다. 
-GPIO는 input buffer와 output driver를 통해 전압과 디지털 비트 사이의 변환을 담당하는 하드웨어 인터페이스입니다. 
-메모리 맵의 Peripheral Register 위치에 담긴 비트로 CPU는 해당 주소에서 바로 LOAD, STORE 할 수 있습니다.
+CPU는 메모리 주소 공간에 대한 LOAD, STORE 명령어만 수행할 뿐, 핀에 인가되는 전압과 전류, 신호 타이밍 같은 물리 현상을 다룰 수 없습니다. 
 
-## 물리적 관점 
-GPIO는 MCU의 외부 핀 중 일부를 담당하며, 핀 MUX를 통해 다음 기능 중 하나로 선택될 수 있습니다: `GPIO / UART / SPI / CAN / ADC / PWM / ...`
-핀은 여러 모드 중 선택하여 사용합니다. 
-### 1. Input 모드
-핀으로부터 외부 전압을 읽어서 디지털 값으로 변환하는 모드입니다.
-1. 핀에 전압이 인가됨
-2. Input buffer 가 Schmitt Trigger 로직으로 아날로그 신호를 디지털 신호로 변환함
-3. Synchronizer가 외부 비동기 입력 신호를 MCU 내부 시스템 클록에 맞춰서 동기화시킴
-4. IDR (Input Data Register)에 비트 저장
+GPIO는 이를 해결하기 위해 다음 역할을 수행합니다. 
+* **[Input path]** 외부 핀 전압 -> 디지털 비트로 변환
+* **[Output path]** CPU 디지털 비트 -> 핀 전압을 생성
 
-* 단, GPIO 핀은 Input 모드에서 기본적으로 떠 있는 상태 (즉, 고임피던스) 입니다.
-    * 외부 입력이 없는 경우, 노이즈 / 정전기 / 커패시턴스 에 의해 값이 전압 값이 확 튀는 등 불안정해질 수 있으므로, Pull-up / Pull-down 저항으로 기본 전압 상태를 만들어줍니다.
-* Input Pull-up: VDD와 약한 저항을 연결시켜, 기본값은 HIGH입니다.
-* Input Pull-down: GND와 약한 저항을 연결시켜, 기본값은 LOW입니다.
-### 2. Output 모드
-CPU가 계산한 결과 값을 기반으로 핀에 전압을 생성하는 모드입니다.
-1. CPU가 GPIO Output Register 주소로 STORE 수행
-2. ODR (Output Data Register)에 저장
-3. Output Driver가 활성화됨
-4. 핀에 전압을 생성
+이를 위해 GPIO는 Input Buffer, Output Driver, 제어 레지스터, 동기화 회로 등을 가진 독립적 하드웨어 블록을 구성합니다.
+
+### CPU 접근 방법
+GPIO 레지스터는 RAM이 아니라 주변장치 내부에 있는 레지스터입니다. 
+하지만 Memory-mapped 구조를 통해 CPU는 이 레지스터에 메모리 주소처럼 접근이 가능합니다. 
+
+즉, GPIO의 IDR / ODR 레지스터도 CPU에서 `LOAD, STORE` 명령어로 제어가 가능합니다. 
+
+### 물리적 관점
+MCU의 핀은 여러 주변장치들로 연결되어 있을 수 있으며, Pin Mux를 통해 어떤 기능을 사용할 지 결정할 수 있습니다. 
+```
+                Physical PAD
+                     |
+               ┌──── PinMux ────┐
+               |                |
+        GPIO Logic         Peripheral Logic
+       (Input/Output)    (UART/SPI/CAN/ADC)
+```
+위 그림처럼 GPIO Logic을 기본 설정으로 갖고 있고, Alternative Function Mode (AF)로 다른 주변장치를 사용할 수 있습니다. 
+
+GPIO와 연결되어 있다면, 다음 GPIO관련 블록을 활성화 시켜서 동작할 수 있습니다.
+```
+Pin PAD
+ ├─ Input Buffer (입력 경로)
+ ├─ Output Driver (출력 경로)
+ ├─ Pull-up / Pull-down Network
+ ├─ Mode Select MUX
+ └─ Peripheral Function MUX
+```
+### 1. Input 모드의 동작 과정
+Input 모드란, 외부 전압 신호를 디지털 값으로 변환하는 경로입니다. 
+```
+외부 핀 전압
+-> Input Buffer (Schmitt Trigger)
+-> Synchronizer (Clock Domain Sync)
+-> IDR (Input Data Register)
+-> CPU Bus Read
+```
+1. 핀 전압 인가: 버튼/스위치/센서 등 외부 회로에서 핀으로 전압이 인가됩니다.
+2. Input BUffer: 인가된 전압을 임계 전압을 기준으로 LOW/HIGH를 판정합니다. 
+    * 핀 모드로 **Pull-up / Pull-down 구조**를 사용
+        * 문제: GPIO핀이 기본적으로 고임피던스(High-Z) 상태이므로, 외부 입력이 없으면 노이즈/정전기/커패시턴스의 영향으로 임의 전압이 튈 수 있습니다.
+        * 해결: 내부 Pull 저항을 활용하여 기본값을 HIGH로 두거나, LOW로 둘 수 있습니다.
+    * **Schmitt Tigger** 회로로 입력 전압의 상승과 하강에 다른 임계값을 사용해서 노이즈와 떨림을 제거합니다. 
+        ```
+        입력
+        ~~~~~~^^^~~~~~~
+        High Th ------------
+        Low Th  ------------
+
+        출력
+        000000111111000000  ← 안정
+        ```
+3. Synchronizer: 외부 입력 신호는 MCU 클록과 비동기 상태이므로, 동기화 플립플롭으로 입력 신호를 내부 클록 도메인으로 안전하게 정렬합니다.
+4. IDR 레지스터에 반영: GPIO 하드웨어가 현재 핀 상태를 보여주는 역할을 담당합니다. 
+5. CPU Read: 버스 시스템을 통해 IDR 주소를 읽고 값을 획득합니다. 
+
+### 2. Output 모드의 동작 과정
+Output 모드란, CPU의 디저털 값을 외부 핀 전압으로 반환하는 경로입니다.
+```
+CPU STORE 명령
+-> Bus Write
+-> ODR Register
+-> Output Driver
+-> Pin PAD
+-> 외부 회로 동작
+```
+1. CPU STORE 실행: CPU가 ODR로 STORE 명령어를 실행합니다.
+2. ODR 저장
+3. **Output Driver** 활성화: 내부 트랜지스터를 제어하여 핀에 전압을 생성합니다.
+    * Output Driver 타입으로 **Push-Pull / Open-Drain 구조** 사용
+    * Push-Pull 구조: HIGH/LOW를 직접 구동합니다. LED, 디지털 출력용으로 적합합니다.
+    * Open-Drain 구조: LOW만 직접 구동합니다. I2C, 다중 장치 공유선에 사용됩니다.
+4. Pin PAD로 전압 출력: HIGH(VDD) 또는 LOW(GND) 전압이 외부로 출력됩니다.
 
 
-
-## 기계적 동작 순서
-### 0. 초기화: 핀 설정하기
+## 임베디드 개발자가 하는 작업
+### 0. 핀을 초기화
 임베디드 개발자는 C 코드로 다음을 설정합니다. 
-### 1) 핀을 정의
+### 1) 핀 정의
 ```C
 #define LED_PORT P13
 #define LED_PIN  0
@@ -42,34 +96,20 @@ CPU가 계산한 결과 값을 기반으로 핀에 전압을 생성하는 모드
 ```
 다음 코드처럼 사용할 핀을 먼저 정의합니다.
 
-### 2) 핀 모드를 설정
+### 2) 핀 모드 설정
 ```C
 IfxPort_setPinMode()
 ```
 해당 함수로 아래를 설정합니다.
 * Input / Output : 하나의 외부 핀이 두개 역할 모두 하는 것은 불가합니다.
+* Pull-up / Pull-down
 * Push-pull / Open-drain
 * GPIO / Alternate Function
-#### 1-1. Input 동작 순서
-1. 외부 장치(버튼, 센서)에 전압 변화 발생
-1. 핀 PAD에 아날로그 전압 인가
-1. Pull 저항이 기본 전압 안정화시킴 
-1. Input Buffer가 전압을 디지털 값으로 변환
-1. Synchronizer 장치가 MCU 클록 도메인으로 동기화
-1. IDR 레지스터 비트에 저장
-1. CPU가 Polling 또는 Interrupt로 처리
-
-#### 1-2. Output 동작 순서
-1. CPU 작성 코드에서 GPIO 출력 명령 실행
-1. ODR 레지스터에 출력값 저장
-1. output driver가 활성화
-1. 핀 PAD에 전압 생성
-1. 외부 장치 동작: LED, 릴레이, IC enable 등
-
+* Drive Strength
 
 ## 예시
 ### 장치
-* 입력 장치로는 보튼, 도어 스위치, 센서 트리거 등이 있다.
+* 입력 장치로는 버튼, 도어 스위치, 센서 트리거 등이 있다.
 * 출력 장치로는 LED, 릴레이 제어, enable 신호, 모터 방향이 있다.
 * 실무에서는 상태 감지, 장치 제어, 전원 관리, 안전 신호 등에 사용될 수 있다.
 
