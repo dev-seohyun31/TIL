@@ -150,109 +150,150 @@ AURIX (TC3xx 기준)
 ```
 [Embedded Engineer Core]
 
-├── 1. MCU Architecture (중심 축)
-│   ├── CPU Core
-│   │   ├─ Instruction
-│   │   ├─ Pipeline
-│   │   ├─ Register
-│   │
-│   ├── Memory System
-│   │   ├─ Flash
-│   │   ├─ RAM
-│   │   ├─ Memory Map
-│   │
-│   ├── Bus System
-│   │   ├─ AXI / AHB
-│   │   ├─ Peripheral Bus
+EMBEDDED ROOT
 │
-│   └── Clock & Reset
-│       ├─ Internal Oscillator
-│       ├─ External Crystal
-│       ├─ PLL
-│       ├─ Reset Source
+├── 0. 사고방식 전환 (SW → HW Interface Thinking)
+│   ├─ Voltage = State
+│   ├─ Current = Capability
+│   ├─ Timing = Truth
+│   ├─ Noise = Reality
+│   └─ Datasheet First Culture
 │
-├── 2. Peripheral Layer (지금 메인 학습 영역)
-│   ├── GPIO
-│   │   ├─ Input / Output Mode
+├── 1. 물리 기초 (전기 감각 만들기)
+│   ├─ 전하, 전압, 전류 개념
+│   ├─ DC vs AC
+│   ├─ 옴의 법칙 (V=IR)
+│   ├─ 전력 (P=VI)
+│   ├─ Ground 기준 개념
+│   └─ Signal vs Power 차이
+│
+├── 2. 전자소자 기초
+│   ├─ Resistor
 │   │   ├─ Pull-up / Pull-down
-│   │   ├─ Drive Strength
+│   │   ├─ Voltage Divider
+│   │   └─ Current Limiting
 │   │
-│   ├── Timer
-│   │   ├─ Counter
-│   │   ├─ Prescaler
-│   │   ├─ PWM
-│   │
-│   ├── ADC
-│   │   ├─ Sampling
-│   │   ├─ Resolution
-│   │   ├─ Reference Voltage
-│   │
-│   ├── Communication
-│   │   ├─ UART
-│   │   ├─ SPI
-│   │   ├─ I2C
-│   │
-│   └── Interrupt / DMA
-│
-├── 3. Pin & Electrical Interface (MCU ↔ 현실세계 연결부)
-│   ├── Pin Multiplexer
-│   ├── Input Buffer
-│   ├── Output Driver
-│   ├── ESD Protection
-│   ├── Clamp Diode
-│
-│   ├── Pull-up / Pull-down (여기서 막힘 발생)
-│   │   ├─ Floating 상태
-│   │   ├─ High-Z
-│   │   ├─ Leakage Current
-│
-│   └── Voltage Level
-│       ├─ 3.3V / 5V Logic
-│       ├─ Threshold Voltage
-│
-├── 4. Electronics Basic (전자기초 — 병목구간)
-│   ├── Voltage / Current
-│   ├── Resistance
-│   ├── Ohm's Law
-│
-│   ├── Capacitor
-│   │   ├─ Charging / Discharging
+│   ├─ Capacitor
 │   │   ├─ Decoupling
-│   │   ├─ Noise Filter
+│   │   ├─ Bulk Cap
+│   │   ├─ Noise Filtering
+│   │   └─ RC Delay
+│   │
+│   ├─ Inductor (선택)
+│   │   ├─ Power Filter
+│   │   └─ EMI 억제
+│   │
+│   ├─ Diode
+│   │   ├─ Protection
+│   │   └─ Flyback
+│   │
+│   └─ Transistor
+│       ├─ BJT
+│       ├─ MOSFET
+│       ├─ Push-Pull
+│       └─ Open Drain
 │
-│   ├── Inductor (선택)
-│   │   ├─ Power Filtering
+├── 3. 회로 읽기 최소 세트
+│   ├─ Schematic Symbol 읽기
+│   ├─ Power Tree 구조
+│   ├─ MCU 주변 회로
+│   │   ├─ Crystal 회로
+│   │   ├─ Reset 회로
+│   │   ├─ Decoupling Network
+│   │   └─ IO 보호 회로
+│   │
+│   ├─ Common Circuit Patterns
+│   │   ├─ Button Input
+│   │   ├─ LED Driver
+│   │   ├─ Sensor Input
+│   │   └─ Level Shifting
+│   │
+│   └─ Datasheet Reference Design 읽기
 │
-│   └── Impedance
-│       ├─ AC Resistance
-│       ├─ Frequency Dependency
+├── 4. MCU Hardware 구조
+│   ├─ Core (CPU)
+│   ├─ Memory
+│   │   ├─ Flash
+│   │   ├─ SRAM
+│   │   └─ Memory Map
+│   │
+│   ├─ Clock System
+│   │   ├─ Internal OSC
+│   │   ├─ External Crystal
+│   │   ├─ PLL
+│   │   └─ Clock Tree
+│   │
+│   ├─ Reset System
+│   │   ├─ POR
+│   │   ├─ WDT
+│   │   └─ SW Reset
+│   │
+│   ├─ Bus System
+│   │   ├─ AHB
+│   │   ├─ AXI
+│   │   └─ Peripheral Bus
+│   │
+│   └─ Peripheral Concept
+│       ├─ Register Mapping
+│       └─ HW State Machine
 │
-├── 5. Circuit Theory (해석 능력)
-│   ├── KCL (Current Law)
-│   ├── KVL (Voltage Law)
-│   ├── Node Analysis
-│   ├── RC Time Constant
-│   ├── Transient Response
+├── 5. Peripheral 핵심
+│   ├─ GPIO
+│   │   ├─ Input Buffer
+│   │   ├─ Output Driver
+│   │   ├─ Pull-Up
+│   │   └─ Alternate Function
+│   │
+│   ├─ Timer
+│   │   ├─ Counter
+│   │   ├─ Compare
+│   │   ├─ PWM
+│   │   └─ Interrupt
+│   │
+│   ├─ ADC
+│   │   ├─ Sample & Hold
+│   │   ├─ Resolution
+│   │   └─ Reference Voltage
+│   │
+│   ├─ UART / SPI / I2C
+│   │   ├─ Physical Layer
+│   │   ├─ Timing
+│   │   └─ Frame Format
+│   │
+│   └─ DMA (중급)
+│       └─ Peripheral ↔ Memory 자동화
 │
-├── 6. Semiconductor Devices (내부 구조 이해)
-│   ├── Diode
-│   ├── NMOS / PMOS
-│   │   ├─ Switching
-│   │   ├─ Gate Control
-│   │   ├─ Push-pull Output
+├── 6. Firmware Layer
+│   ├─ Startup Code
+│   │   ├─ Vector Table
+│   │   ├─ Stack Init
+│   │   └─ Memory Init
+│   │
+│   ├─ Driver Layer
+│   │   ├─ Register Control
+│   │   └─ HAL abstraction
+│   │
+│   ├─ Interrupt System
+│   │   ├─ NVIC
+│   │   ├─ Priority
+│   │   └─ ISR 설계
+│   │
+│   ├─ Timing Control
+│   │   ├─ Blocking vs Non-blocking
+│   │   └─ RTOS 개념
+│   │
+│   └─ Debugging
+│       ├─ JTAG
+│       ├─ SWD
+│       ├─ Logic Analyzer
+│       └─ Register Watch
 │
-│   └── CMOS Logic
-│
-├── 7. Noise & Signal Integrity (실무 트러블 구간)
-│   ├── Ground Bounce
-│   ├── EMI
-│   ├── Crosstalk
-│   ├── Decoupling Capacitor
-│
-└── 8. AURIX Specific Layer
-    ├── Port Driver
-    ├── Pad Driver
-    ├── Drive Strength
-    ├── Pin Configuration
-    ├── Safety IO
+└── 7. 실전 통합 프로젝트
+    ├─ LED + Button
+    ├─ Timer PWM LED Dimmer
+    ├─ ADC Sensor Read
+    ├─ UART Printf Debug
+    ├─ CAN/LIN 통신
+    └─ Power Management 테스트
+
 ```
