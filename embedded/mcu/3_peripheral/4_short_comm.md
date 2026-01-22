@@ -1,5 +1,11 @@
 # 실제 개념
-MCU와 주변장치 인터페이스같이 짧은 거리를 통신하는 보드 내부 장치 제어용 통신 3가지를 소개합니다.
+다음 통신 세가지 UART, SPI, I2C는 보드 내부 통신(Chip-to-Chip) 용도로 설계된 인터페이스입니다.
+```
+MCU
+ ├─ UART → Debug
+ ├─ SPI → Flash
+ └─ I2C → Sensor
+```
 기본적으로 다음 순서로 동작합니다.
 ```
 핀 → 전기 신호 → 프레임 → Shift Register → Peripheral 동작
