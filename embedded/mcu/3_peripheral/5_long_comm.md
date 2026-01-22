@@ -1,21 +1,27 @@
 # 실제 개념
-임베디드 시스템에서 CAN, LIN, Ethernet은 단순한 Peripheral 통신(UART/SPI/I2C)을 넘어, 여러 노드가 하나의 네트워크를 구성하여 통신하는 분산 시스템 통신 프로토콜입니다: `Peripheral 인터페이스 → 분산 네트워크 시스템` 
+임베디드 시스템에서 CAN, LIN, Ethernet은 단순한 Peripheral 통신(UART/SPI/I2C)을 넘어, 여러 MCU(ECU)를 실시간으로 연결하는 분산 제어 네트워크입니다.
+```
+ECU
+ ├─ CAN  → Powertrain / Brake / Airbag Network
+ ├─ LIN  → Door / Seat / Light / Body Control
+ └─ Ethernet → Camera / ADAS / Infotainment
+```
 
-이들은 다음과 같은 공통 특징을 가집니다.
+이들은 분산 네트워크를 형성하면서 공통적인 특징을 가지게 되었습니다.
 - Multi-node Bus 또는 Network 구조
 - 충돌 제어 및 중재 메커니즘 포함
 - 프레임 신뢰성 구조(CRC, ACK, 재전송)
 - 실시간 특성 또는 고대역폭 처리 목적
-- PHY와 Controller로 역할 분리: `핀 → PHY → MAC/Controller → 프레임 → 필터링/중재 → 버퍼 → CPU`
+- PHY와 Controller로 역할 분리
     * PHY: 전기 신호 변환, 차등 구동, 물리 계층 담당
     * Controller: 프레임 처리, 필터링, 버퍼 관리
 
 ## 1. CAN이란
 
-CAN(Controller Area Network)은 여러 노드가 하나의 차동 버스를 공유하며, 메시지 ID 기반 중재를 통해 충돌 없이 실시간 통신을 수행하는 네트워크 프로토콜입니다.
+CAN(Controller Area Network)은 여러 ECU가 동시에 이벤트가 발생했을 때, 중앙 제어가 없어도 높은 신뢰성을 가질 수 있도록 설계된 통신입니다.
+여러 노드가 하나의 차동 버스를 공유하며, 메시지 ID 기반 중재를 통해 충돌 없이 실시간 통신을 수행할 수 있습니다.
 
-기존 방식인 ECU마다 UART 선 연결을 하면 배선 폭증, 통신 충돌, 낮은 신뢰성 문제가 있어서, 하나의 공용 버스에 모든 ECU를 붙이는 CAN이 생겨났습니다.
-CAN은 높은 신뢰성과 결정적 지연 시간을 제공합니다.
+기존 방식인 ECU마다 UART 선 연결을 하면 배선 폭증, 통신 충돌, 낮은 신뢰성 문제가 있어서, 하나의 공용 버스에 모든 ECU를 붙이는 방식으로 구현되어 있습니다.
 
 ### 특징
 
@@ -35,24 +41,10 @@ CAN은 높은 신뢰성과 결정적 지연 시간을 제공합니다.
 ### 물리적 배선 구조
 CAN은 MCU 내부 Controller와 외부 Transceiver를 사용합니다. 
 모든 노드가 같은 선을 공유하고, Master/Slave가 없는 Multi-Master 구조입니다.
+<img width="856" height="273" alt="image" src="https://github.com/user-attachments/assets/70934f3d-70fa-4c84-8775-47ad35202370" />
 
-```
-        MCU A                          MCU B
- ┌───────────────┐               ┌───────────────┐
- │ CAN Controller│               │ CAN Controller│
- └──────┬────────┘               └───────┬───────┘
-        │ TX/RX                          │ TX/RX
-        ▼                                ▼
- ┌────────────────┐               ┌────────────────┐
- │ CAN Transceiver│               │ CAN Transceiver│
- └──────┬───────┬─┘               └──────┬───────┬─┘
-        │       │                        │       │
-      CAN_H   CAN_L                   CAN_H   CAN_L
-        │       │                        │       │
-========┴=======┴========================┴=======┴========
-        │       │                        │       │
-      120Ω     120Ω                 (Termination Resistors)
-```
+출처: https://analog-circuit-design.tistory.com/entry/38-CAN-%ED%86%B5%EC%8B%A0-%ED%9A%8C%EB%A1%9C-%EC%9D%B4%ED%95%B4%ED%95%98%EA%B8%B0#google_vignette
+
 - **CAN Controller** (MCU 내부): 프레임 생성, 중재 처리, CRC, 필터링, 버퍼 관리를 담당합니다.
 - **CAN Transceiver** (외부 칩): 전압 변환을 담당하여, MCU TX/RX(3.3V)를 CAN_H/L 차동 신호로 변환합니다.
 - **CAN_H / CAN_L** : 차동 신호선
@@ -66,13 +58,23 @@ CAN은 MCU 내부 Controller와 외부 Transceiver를 사용합니다.
 ```
 | SOF | ID | RTR | Control | Data | CRC | ACK | EOF |
 ```
-- **ID** : 메시지 우선순위와 의미
-    - ID 값이 작을수록 우선순위가 높습니다: `0x100 > 0x300이기 때문에, 0x100 먼저 전송됨`
+- **SOF**: 프레임 시작 표시 비트입니다. 주로 `Dominant(0)`으로 시작됩니다.
+- **ID**: 메시지 우선순위와 의미입닌다. 
+    - CAN에는 주소 개념이 없는 대신 ID가 메시지 종류를 나타냅니다.
+        - `ID 0x100` 은 Engine RPM을 의미
+        - `ID 0x200` 은 Brake Presssure을 의미
+        - `ID 0x300` 은 Steering Angle을 의미
+    - ID 값이 낮을수록 우선순위가 높은 중재 규칙을 갖고 있습니다.
+        - `Dominant = 0, Recessive = 1`이기 때문에 0이 우선순위가 높음
+        - `0x100 > 0x300`이기 때문에, `0x100` 먼저 전송
     - 필요한 ID가 아니라면 필터링이 진행됩니다: `MASK 활용해서 필터링`
-- **DLC** : 데이터 길이
-- **DATA** : 최대 8바이트 (CAN FD는 64바이트)
-- **CRC** : 오류 검출
-- **ACK Slot** : 수신 노드 확인 응답
+- **RTR**: 데이터 프레임인지, 요청 프레임인지 구분합니다.
+    - Dominant(0): Data Frame
+    - Recessive(1): Remote Frame (데이터 요청)
+- **Control**: DLC(데이터 길이)와 예약비트로 구성되어 있습니다.
+- **DATA**: 최대 8바이트 (CAN FD는 64바이트)
+- **CRC**: 오류 검출용
+- **ACK**: 수신 노드 확인 응답
 ### 동작 원리
 #### 내부 구조
 ```
@@ -139,11 +141,12 @@ CAN은 전기적으로 다음 특성을 사용한다.
 > 다중 노드 환경에서도 실시간성과 신뢰성을 보장하는 차량 네트워크 프로토콜입니다.
 
 ## 2. LIN이란
-LIN(Local Interconnect Network)은 저속·저비용 센서 및 액추에이터 제어를 위한 Master-Slave 기반 단선 네트워크 통신 프로토콜입니다.
+LIN(Local Interconnect Network)은 비용 최소화를 위한 보조 제어 네트워크로, Master-Slave 기반 단선 네트워크 통신 프로토콜입니다.
 
 CAN은 트랜시버때문에 비용이 비싸고, MCU도 고성능이 필요하며, 속도는 불필요하게 빠릅니다.
 이에 반해 창문 스위치, 사이드미러 모터, 실내등, 시트 조절, 선루프 등은 초당 수십바이트면 충분하기 때문에 싸고 단순한 통신인 LIN이 탄생했습니다.
-- LIN은 말단, CAN은 중앙으로 하여 실제 차량 구조를 만듭니다.
+
+LIN은 말단, CAN은 중앙으로 하여 실제 차량 구조를 만듭니다.
 ### 특징
 - **Master-Slave 구조**
 - **Single-wire 통신**
@@ -152,31 +155,12 @@ CAN은 트랜시버때문에 비용이 비싸고, MCU도 고성능이 필요하�
 - **저속 (최대 20kbps)**
 - **저비용 구현**
 ### 물리 배선 구조
-```
-                Master Node (MCU)
- ┌─────────────────────────────────────┐
- │ LIN Controller (UART 기반)          │
- └───────────────┬─────────────────────┘
-                 │ TX/RX
-                 ▼
-         ┌─────────────────┐
-         │ LIN Transceiver │
-         └───────┬─────────┘
-                 │
-               LIN BUS  (Single Wire)
-                 │
-   -------------------------------------------------
-     │                │                │
-     ▼                ▼                ▼
- Slave A           Slave B           Slave C
- ┌────────┐       ┌────────┐       ┌────────┐
- │Transcv │       │Transcv │       │Transcv │
- └───┬────┘       └───┬────┘       └───┬────┘
-     │                │                │
-    MCU              MCU              MCU
 
-(공통 GND 연결)
-```
+<img width="978" height="575" alt="image" src="https://github.com/user-attachments/assets/bf02a7d8-b4d8-4313-86d4-17ea017b377e" />
+
+출처: https://velog.io/@zhemdrawer/LIN-%ED%86%B5%EC%8B%A0%EC%9D%98-%EC%9D%B4%ED%95%B4
+
+
 - 단일 신호선 (1개) + GND
 - Pull-up 저항 사용
 
