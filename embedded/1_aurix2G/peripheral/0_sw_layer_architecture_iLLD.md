@@ -53,6 +53,11 @@ STORE instruction
 * Memory Mapped I/O 구조로 되어있어, CPU가 LOAD/STORE 명령어로 직접 접근할 수 있습니다.
 * 레지스터의 비트 조작이 하드웨어 회로 동작으로 바로 연결됩니다. 
 
+이 계층은 반드시 다음 문서로 해석되며 비트 의미, 전기적 동작, 보호 조건 등이 정의됩니다. 
+* User Manual
+* Datasheet
+
+
 
 ### 4. H/W Layer (Silicon Layer)
 Hardware Layer는 실제 MCU 실리콘 내부 회로 블록입니다.
@@ -82,23 +87,23 @@ Register Bit Change
 아래 흐름을 계층별로 다시 표시하면,
 ```
 [ Application Layer ]
-Application Code
+Application Code - iLLD를 사용할 뿐
       ↓
 
 [ HAL Layer ]
-HAL API 호출
+HAL API 호출 - 레지스터 접근 코드가 실행
       ↓
 
 [ Register Layer ]
-Register Bit Write
+Register Bit Write - 레지스터 값의 변화
       ↓
 
 [ Hardware Layer ]
-Internal Hardware Logic
+Internal Hardware Logic - 회로 구성
       ↓
 Transistor Switching
       ↓
-Pin Voltage Change
+Pin Voltage Change - 전기/전압 생성
 ```
 
 이 4가지 계층은 다음 문제를 해결합니다.
