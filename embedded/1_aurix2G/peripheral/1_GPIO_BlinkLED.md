@@ -193,6 +193,13 @@ OMR 레지스터가 쓰여지면 Output latch가 변경되고, 이는 OUT 레지
 
 즉, OMR은 OUT 레지스터 값을 안전하게 변경하기 위한 write-only 제어 레지스터이며, 멀티코어 환경이나 인터럽트 환경에서도 OUT 레지스터를 직접 수정하지 않고 atomic하게 상태를 변경할 수 있도록 설계되었습니다.
 
+실제로 `blink_LED()` 실행을 반복하며 디버깅을 해보면, OMR 레지스터는 제어 레지스터로 값을 볼 수 없는 반면,
+![디버깅-OMR레지스터](image/image-6.png)
+
+OUT 레지스터의 값은 resume할때마다 값이 토글되는 것을 볼 수 있습니다. 
+![디버깅-OUT레지스터](image/image-7.png)
+![디버깅-OUT레지스터2](image/image-8.png)
+
 
 ## 3. 확장 제어 (멀티 LED)
 
