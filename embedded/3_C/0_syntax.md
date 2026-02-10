@@ -28,7 +28,45 @@ int* buildArray(int* nums, int numsSize, int* returnSize) {
 
 # 1480 Running Sum of 1d Array
 ## 문제
+주어진 배열 nums에 대해 합을 누적하여 새로운 배열 ans를 생성한다. 
+* 입력: `nums = [1, 2, 3]`
+* 출력: `[1, 3, 6]`
+
 ## 전략
+배열을 오염시키지 않도록 sum 변수를 하나 추가하고, 반복문으로 누적합을 구한다.
+### 코드
+```C
+int* runningSum(int* nums, int numsSize, int* returnSize) {
+    // 배열 생성
+    int* ans = (int*)malloc(sizeof(int) * numsSize);
+
+    // 배열 초기화
+    int sum = 0;
+    for (int i = 0; i < numsSize; i++) {
+        sum += nums[i];
+        ans[i] = sum;
+    }
+
+    // 배열 반환
+    *returnSize = numSize;
+    return ans;
+}
+``` 
+### 발전
+`nums` 배열을 그대로 덮어씌워서 메모리 활용도를 높일 수도 있다. 
+```C
+int* runningSum(int* nums, int numsSize, int* returnSize) {
+    // 배열 계산
+    for (int i = 1; i < numsSize; i++) {
+        nums[i] += nums[i-1];
+    }
+
+    // 배열 반환
+    *returnSize = numsSize;
+    return nums;
+
+}
+```
 
 # 1108 Defanging an IP Address
 ## 문제
