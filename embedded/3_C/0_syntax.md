@@ -70,7 +70,47 @@ int* runningSum(int* nums, int numsSize, int* returnSize) {
 
 # 1108 Defanging an IP Address
 ## 문제
+문자열 `"1.1.1.1"` 에서 `.`를 `[.]`로 치환하여 `"1[.]1[.]1[.]1"`으로 변환합니다.
+
 ## 전략
+문자열을 순회하면서 새로운 char 배열을 만들고 값을 채워 넣는다.
+### 포인트
+* 새로운 문자열의 길이를 먼저 계산한 뒤 메모리를 할당해야 한다.
+* C 문자열은 마지막에 반드시 `'\0'`(null terminator)가 있다. 
+    * 메모리 할당시에도 +1 공간을 추가해야 한다. 
+### 코드
+```C
+#include <string.h>
+
+char * defangIPaddr(char * address){
+    // 새로운 배열 - 개수 세기, 생성
+    int len = (int)strlen(address);
+    int dotCount = 0;
+    for (int i = 0; address[i] != '\0'; i++) {
+        if (address[i] == '.') {
+            dotCount++;
+        }
+    }
+    int newLen = len + dotCount * 2;
+
+    char* out = (char*)malloc(newLen + 1);
+
+    // 배열 채워넣기
+    int j = 0;
+    for (int i = 0; address[i] != '\0'; i++) {
+        if (address[i] == '.') {
+            out[j++] = '[';
+            out[j++] = '.';
+            out[j++] = ']';
+        } else {
+            out[j++] = address[i];
+        }
+    }
+    out[j] = '\0';
+    return out;
+}
+```
+
 
 # 2011 Final Value of Variable After Performing Operations
 ## 문제
