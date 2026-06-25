@@ -29,6 +29,9 @@
 
 <a id="section-1"></a>
 
+<img width="1492" height="826" alt="모터제어도식도" src="https://github.com/user-attachments/assets/fd824df1-7baf-457a-8446-67ecd4f6249e" />
+
+
 ## 1. 모터 제어는 전력을 직접 다루는 소프트웨어입니다
 
 모터 제어는 단순히 모터를 켜고 끄는 코드가 아닙니다. 모터 제어는 전력을 다루는 하드웨어를 MCU가 매우 짧은 주기로 제어하는 구조입니다.
